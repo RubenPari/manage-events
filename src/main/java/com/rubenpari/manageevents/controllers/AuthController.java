@@ -10,7 +10,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,7 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Random;
 
 @RestController
 @RequestMapping(path = "/auth", produces = "application/json")
@@ -39,7 +37,7 @@ public class AuthController {
     }
 
     @GetMapping(value = "/login", produces = "application/json")
-    public String login(HttpSession session) {
+    public String login() {
         AuthorizationCodeRequestUrl authorizationUrl = authorizationCodeFlow.newAuthorizationUrl().setRedirectUri(REDIRECT_URI);
 
         return authorizationUrl.build();
