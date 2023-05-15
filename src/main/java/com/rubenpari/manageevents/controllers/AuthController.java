@@ -8,6 +8,8 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.rubenpari.manageevents.config.ResponseObject;
+import com.rubenpari.manageevents.utils.Status;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 @RestController
-@RequestMapping(path = "/auth", produces = "application/json")
+@RequestMapping(path = "/auth")
 public class AuthController {
     private final AuthorizationCodeFlow authorizationCodeFlow;
 
@@ -36,15 +38,15 @@ public class AuthController {
         this.authorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, jsonFactory, CLIENT_ID, CLIENT_SECRET, Arrays.asList(SCOPES)).build();
     }
 
-    @GetMapping(value = "/login", produces = "application/json")
+    @GetMapping(value = "/login")
     public String login() {
         AuthorizationCodeRequestUrl authorizationUrl = authorizationCodeFlow.newAuthorizationUrl().setRedirectUri(REDIRECT_URI);
 
-        return authorizationUrl.build();
+        return "redirect:" + authorizationUrl.build();
     }
 
-    @GetMapping(value = "/callback", produces = "application/json")
-    public String callback(HttpSession session, @RequestParam("code") String code) throws IOException {
+    @GetMapping(value = "/callback")
+    public ResponseObject callback(HttpSession session, @RequestParam("code") String code) throws IOException {
         GoogleTokenResponse tokenResponse;
 
         try {
@@ -56,13 +58,13 @@ public class AuthController {
         // save accessToken in session
         session.setAttribute("accessToken", tokenResponse.getAccessToken());
 
-        return "Successfully login";
+        return new ResponseObject("Sucessfully login", Status.OK);
     }
 
-    @GetMapping(value = "/logout", produces = "application/json")
-    public String logout(HttpSession session) {
+    @GetMapping(value = "/logout")
+    public ResponseObject logout(HttpSession session) {
         session.removeAttribute("AccessToken");
 
-        return "Logout successfully";
+        return new ResponseObject("Sucessfully logout", Status.OK);
     }
 }
