@@ -10,6 +10,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.rubenpari.manageevents.config.ResponseObject;
 import com.rubenpari.manageevents.utils.Status;
+import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,28 +20,26 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 
 @RestController
 @RequestMapping(path = "/auth")
 public class AuthController {
+    private final Dotenv env;
     private final AuthorizationCodeFlow authorizationCodeFlow;
-
-    private static final String CLIENT_ID = "";
-    private static final String CLIENT_SECRET = "";
-    private static final String[] SCOPES = {"https://www.googleapis.com/auth/calendar"};
-    private static final String REDIRECT_URI = "http://localhost:8080/auth/callback";
 
     public AuthController() {
         HttpTransport httpTransport = new NetHttpTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
-        this.authorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, jsonFactory, CLIENT_ID, CLIENT_SECRET, Arrays.asList(SCOPES)).build();
+        this.env = Dotenv.load();
+
+        this.authorizationCodeFlow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, jsonFactory, env.get("CLIENT_ID"), env.get("CLIENT_SECRET"), Collections.singletonList(env.get("SCOPES"))).build();
     }
 
     @GetMapping(value = "/login")
     public String login() {
-        AuthorizationCodeRequestUrl authorizationUrl = authorizationCodeFlow.newAuthorizationUrl().setRedirectUri(REDIRECT_URI);
+        AuthorizationCodeRequestUrl authorizationUrl = authorizationCodeFlow.newAuthorizationUrl().setRedirectUri(this.env.get("REDIRECT_URL"));
 
         return "redirect:" + authorizationUrl.build();
     }
@@ -50,7 +49,7 @@ public class AuthController {
         GoogleTokenResponse tokenResponse;
 
         try {
-            tokenResponse = (GoogleTokenResponse) authorizationCodeFlow.newTokenRequest(code).setRedirectUri(REDIRECT_URI).execute();
+            tokenResponse = (GoogleTokenResponse) authorizationCodeFlow.newTokenRequest(code).setRedirectUri(this.env.get("REDIRECT_URI")).execute();
         } catch (Error e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error to get access token");
         }
