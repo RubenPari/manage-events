@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 
 @RestController
@@ -50,7 +50,7 @@ public class AuthController {
     @GetMapping(value = "/callback")
     public ResponseObject callback(HttpSession session,
                                    @RequestParam("code") String code,
-                                   @RequestParam("state") String state) throws IOException {
+                                   @RequestParam("state") String state) throws IOException, InterruptedException, URISyntaxException {
         String sessionState = (String) session.getAttribute("state");
 
         if (sessionState == null || !sessionState.equals(state)) {
@@ -59,37 +59,30 @@ public class AuthController {
 
         session.removeAttribute("state");
 
-        URL url = new URL("https://accounts.google.com/o/oauth2/token");
+        String url = "https://accounts.google.com/o/oauth2/token";
 
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URL(url).toURI())
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "code=" + code +
+                                "&client_id=" + clientId +
+                                "&client_secret=" + clientSecret +
+                                "&redirect_uri=" + redirectUri +
+                                "&grant_type=authorization_code"
+                ))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .build();
 
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
+        // send request
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
-        String requestBody = "grant_type=" + URLEncoder.encode("authorization_code", StandardCharsets.UTF_8)
-                + "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8)
-                + "&client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
-                + "&client_secret=" + URLEncoder.encode(clientSecret, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
-
-        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-        // execute request
-        OutputStream outputStream = connection.getOutputStream();
-        outputStream.write(requestBody.getBytes(StandardCharsets.UTF_8));
-        outputStream.close();
-
-        int responseCode = connection.getResponseCode();
-
-        if (responseCode != 200) {
+        // check if status code is 200
+        if (response.statusCode() != 200) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid code");
         }
 
         // get "access_token" value from response body
-        String responseBody = connection.getResponseMessage();
-        String[] responseParts = responseBody.split("&");
-
-        String accessToken = responseParts[0].split("=")[1];
+        String accessToken = response.body().split("\"")[3];
 
         session.setAttribute("AccessToken", accessToken);
 
