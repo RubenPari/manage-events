@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -32,7 +33,7 @@ public class AuthController {
     private String redirectUri;
 
     @GetMapping(value = "/login")
-    public String login(HttpSession session) {
+    public RedirectView login(HttpSession session) {
         String state = UUID.randomUUID().toString();
 
         session.setAttribute("state", state);
@@ -44,7 +45,7 @@ public class AuthController {
                 "&scope=https://www.googleapis.com/auth/calendar" +
                 "&state=" + state;
 
-        return "redirect:" + url;
+        return new RedirectView(url);
     }
 
     @GetMapping(value = "/callback")
