@@ -48,6 +48,9 @@ public class AuthController {
         return new RedirectView(url);
     }
 
+    /**
+     * TODO: doesn't work
+     */
     @GetMapping(value = "/callback")
     public ResponseObject callback(HttpSession session,
                                    @RequestParam("code") String code,
